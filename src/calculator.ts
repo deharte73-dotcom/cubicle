@@ -27,6 +27,13 @@ export interface CalculationResult {
   hpmPricePerSheet: number;
   hpmSheets: number;
   hpmAmount: number;
+
+  hpmSheets_4x6: number;
+  hpmAmount_4x6: number;
+  hpmSheets_4x8: number;
+  hpmAmount_4x8: number;
+  hpmSheets_4x10: number;
+  hpmAmount_4x10: number;
   
   hardwareAmount: number;
   bondingAmount: number;
@@ -130,9 +137,68 @@ export function calculateCubicle(inputs: CubicleInputs): CalculationResult {
   const pbSheets = doorPbSheets + frontPbSheets + partitionPbSheets;
   const hpmSheets = doorHpmSheets + frontHpmSheets + partitionHpmSheets;
 
+  // Group HPM sheets and amounts by board size (tiers)
+  // Tier 4x6: Height <= 1800
+  // Tier 4x8: 1800 < Height <= 2400
+  // Tier 4x10: Height > 2400
+  let hpmSheets_4x6 = 0;
+  let hpmAmount_4x6 = 0;
+  let hpmSheets_4x8 = 0;
+  let hpmAmount_4x8 = 0;
+  let hpmSheets_4x10 = 0;
+  let hpmAmount_4x10 = 0;
+
+  const getTier = (height: number) => {
+    if (height <= 1800) return "4x6";
+    if (height <= 2400) return "4x8";
+    return "4x10";
+  };
+
+  // Door HPM
+  const doorTier = getTier(dHeight);
+  const doorHpmAmount = doorHpmSheets * doorPrices.hpmPriceVal;
+  if (doorTier === "4x6") {
+    hpmSheets_4x6 += doorHpmSheets;
+    hpmAmount_4x6 += doorHpmAmount;
+  } else if (doorTier === "4x8") {
+    hpmSheets_4x8 += doorHpmSheets;
+    hpmAmount_4x8 += doorHpmAmount;
+  } else {
+    hpmSheets_4x10 += doorHpmSheets;
+    hpmAmount_4x10 += doorHpmAmount;
+  }
+
+  // Front HPM
+  const frontTier = getTier(fHeight);
+  const frontHpmAmount = frontHpmSheets * frontPrices.hpmPriceVal;
+  if (frontTier === "4x6") {
+    hpmSheets_4x6 += frontHpmSheets;
+    hpmAmount_4x6 += frontHpmAmount;
+  } else if (frontTier === "4x8") {
+    hpmSheets_4x8 += frontHpmSheets;
+    hpmAmount_4x8 += frontHpmAmount;
+  } else {
+    hpmSheets_4x10 += frontHpmSheets;
+    hpmAmount_4x10 += frontHpmAmount;
+  }
+
+  // Partition HPM
+  const partitionTier = getTier(pHeight);
+  const partitionHpmAmount = partitionHpmSheets * partitionPrices.hpmPriceVal;
+  if (partitionTier === "4x6") {
+    hpmSheets_4x6 += partitionHpmSheets;
+    hpmAmount_4x6 += partitionHpmAmount;
+  } else if (partitionTier === "4x8") {
+    hpmSheets_4x8 += partitionHpmSheets;
+    hpmAmount_4x8 += partitionHpmAmount;
+  } else {
+    hpmSheets_4x10 += partitionHpmSheets;
+    hpmAmount_4x10 += partitionHpmAmount;
+  }
+
   // Amounts
   const pbAmount = (doorPbSheets * doorPrices.pbPriceVal) + (frontPbSheets * frontPrices.pbPriceVal) + (partitionPbSheets * partitionPrices.pbPriceVal);
-  const hpmAmount = (doorHpmSheets * doorPrices.hpmPriceVal) + (frontHpmSheets * frontPrices.hpmPriceVal) + (partitionHpmSheets * partitionPrices.hpmPriceVal);
+  const hpmAmount = doorHpmAmount + frontHpmAmount + partitionHpmAmount;
 
   const pbPricePerSheet = pbSheets > 0 ? Math.round(pbAmount / pbSheets) : 0;
   const hpmPricePerSheet = hpmSheets > 0 ? Math.round(hpmAmount / hpmSheets) : 0;
@@ -171,6 +237,12 @@ export function calculateCubicle(inputs: CubicleInputs): CalculationResult {
     hpmPricePerSheet,
     hpmSheets,
     hpmAmount,
+    hpmSheets_4x6,
+    hpmAmount_4x6,
+    hpmSheets_4x8,
+    hpmAmount_4x8,
+    hpmSheets_4x10,
+    hpmAmount_4x10,
     hardwareAmount,
     bondingAmount,
     laborAmount,

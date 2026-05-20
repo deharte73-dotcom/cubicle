@@ -606,27 +606,39 @@ export default function App() {
                             <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap truncate max-w-[100px]" title="로스율 10% 반영">로스 10%</td>
                           </tr>
                           {/* 마감재 HPM */}
-                          <tr className="hover:bg-slate-50 transition">
-                            <td className="p-2 font-bold text-slate-900 whitespace-nowrap">마감재 (HPM)</td>
-                            <td className="p-2 whitespace-nowrap">
-                              {(() => {
-                                const resolvedFrontHeight = fHeight > 0 ? fHeight : 1800;
-                                const resolvedDoorHeight = dHeight > 0 ? dHeight : 1800;
-                                const resolvedPartitionHeight = pHeight > 0 ? pHeight : 1800;
-                                const maxHpmHeight = Math.max(resolvedFrontHeight, resolvedDoorHeight, resolvedPartitionHeight);
-                                if (maxHpmHeight <= 1800) {
-                                  return hpmType === "일반 HPM" ? "일반 HPM (9,500원)" : "메탈 HPM (25,000원)";
-                                } else if (maxHpmHeight <= 2400) {
-                                  return hpmType === "일반 HPM" ? "일반 HPM (14,000원)" : "메탈 HPM (25,000원)";
-                                } else {
-                                  return hpmType === "일반 HPM" ? "일반 HPM (19,500원)" : "메탈 HPM (34,000원)";
-                                }
-                              })()}
-                            </td>
-                            <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.hpmSheets}장</td>
-                            <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.hpmAmount.toLocaleString()}원</td>
-                            <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap truncate max-w-[100px]" title="양면 부착">양면 부착</td>
-                          </tr>
+                          {calculation.hpmSheets_4x6 > 0 && (
+                            <tr className="hover:bg-slate-50 transition">
+                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">마감재 (HPM 4*6)</td>
+                              <td className="p-2 whitespace-nowrap">
+                                {hpmType === "일반 HPM" ? "일반 HPM (9,500원)" : "메탈 HPM (25,000원)"}
+                              </td>
+                              <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.hpmSheets_4x6}장</td>
+                              <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.hpmAmount_4x6.toLocaleString()}원</td>
+                              <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap truncate max-w-[100px]" title="양면 부착">양면 부착</td>
+                            </tr>
+                          )}
+                          {calculation.hpmSheets_4x8 > 0 && (
+                            <tr className="hover:bg-slate-50 transition">
+                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">마감재 (HPM 4*8)</td>
+                              <td className="p-2 whitespace-nowrap">
+                                {hpmType === "일반 HPM" ? "일반 HPM (14,000원)" : "메탈 HPM (25,000원)"}
+                              </td>
+                              <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.hpmSheets_4x8}장</td>
+                              <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.hpmAmount_4x8.toLocaleString()}원</td>
+                              <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap truncate max-w-[100px]" title="양면 부착">양면 부착</td>
+                            </tr>
+                          )}
+                          {calculation.hpmSheets_4x10 > 0 && (
+                            <tr className="hover:bg-slate-50 transition">
+                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">마감재 (HPM 4*10)</td>
+                              <td className="p-2 whitespace-nowrap">
+                                {hpmType === "일반 HPM" ? "일반 HPM (19,500원)" : "메탈 HPM (34,000원)"}
+                              </td>
+                              <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.hpmSheets_4x10}장</td>
+                              <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.hpmAmount_4x10.toLocaleString()}원</td>
+                              <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap truncate max-w-[100px]" title="양면 부착">양면 부착</td>
+                            </tr>
+                          )}
                           {/* 하드웨어 */}
                           <tr className="hover:bg-slate-50 transition">
                             <td className="p-2 font-bold text-slate-900 whitespace-nowrap">하드웨어</td>
