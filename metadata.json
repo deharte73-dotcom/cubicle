@@ -1,0 +1,6 @@
+{
+  "name": "큐비클 적산 계산기",
+  "description": "큐비클 현장의 자재 조합과 세부 공정별 비용을 분석하여 최종 실행가 및 영업이익별 제안 견적가를 산출하는 수석 적산 마스터 대시보드입니다.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
