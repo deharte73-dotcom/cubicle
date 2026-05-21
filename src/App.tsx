@@ -40,6 +40,7 @@ export default function App() {
   const [hpmType, setHpmType] = useState<"일반 HPM" | "메탈 HPM">("일반 HPM");
   const [baseboard, setBaseboard] = useState<"없음" | "전면" | "전체">("없음");
   const [quantity, setQuantity] = useState<number | "">("");
+  const [doorCount, setDoorCount] = useState<number | "">("");
 
   // 업체 및 현장명 정보 입력 상태
   const [companyName, setCompanyName] = useState<string>("");
@@ -51,9 +52,26 @@ export default function App() {
   const dHeight = Number(doorHeight) || 0;
   const pHeight = Number(partitionHeight) || 0;
   const qty = Number(quantity) || 0;
+  const dCount = Number(doorCount) || 0;
 
   // 2. 누락값 검증용 임시 플래그 (0이나 비어있는 경우 검증을 위함)
   const isInputValid = fHeight > 0 && dHeight > 0 && pHeight > 0 && qty > 0;
+
+  // Dynamic Ratio calculation for UI Labels
+  let doorRatioVal = 0.25;
+  let frontRatioVal = 0.25;
+  const partitionRatioVal = 0.50;
+
+  if (dCount > 0 && qty > 0) {
+    const resolvedDHeight = dHeight > 0 ? dHeight : 1800;
+    const doorAreaVal = dCount * 0.6 * (resolvedDHeight / 1000);
+    doorRatioVal = doorAreaVal / qty;
+    frontRatioVal = Math.max(0, 1.0 - 0.50 - doorRatioVal);
+  }
+
+  const doorPctText = dCount > 0 && qty > 0 ? `${(doorRatioVal * 100).toFixed(1)}%` : "25%";
+  const frontPctText = dCount > 0 && qty > 0 ? `${(frontRatioVal * 100).toFixed(1)}%` : "25%";
+  const partitionPctText = "50%";
   
   // 3. 계산 실행 (HPM 타입을 안전하게 매칭)
   const sanitizedHpmType = hpmType.includes("메탈") ? "메탈 HPM" : "일반 HPM";
@@ -64,7 +82,8 @@ export default function App() {
     pbType,
     hpmType: sanitizedHpmType,
     baseboard,
-    quantity: qty
+    quantity: qty,
+    doorCount: dCount > 0 ? dCount : undefined
   });
 
   const scenarios: ProfitScenario[] = getProfitScenarios(calculation.totalCost, qty);
@@ -295,18 +314,35 @@ export default function App() {
               </div>
 
               {/* 높이 개별 조절 (전면, 도어, 간벽) */}
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <div className="border-b border-slate-100 pb-1">
                   <label className="block text-[11px] font-bold text-slate-900 flex items-center gap-1">
-                    📐 파트별 높이 설정 (mm)
+                    📐 파트별 설정 및 높이 (mm)
                   </label>
+                </div>
+
+                {/* 도어 수량 입력 필드 (선택) */}
+                <div className="bg-slate-50/70 p-2.5 rounded-xl border border-slate-100/85">
+                  <label className="block text-[10px] font-bold text-slate-700 mb-1 flex items-center gap-1">
+                    🚪 도어 수량 (개) - 선택
+                  </label>
+                  <input
+                    type="number"
+                    value={doorCount || ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setDoorCount(val === "" ? "" : Number(val));
+                    }}
+                    placeholder="수량 입력 시 도어/전면 전용 배분 적용"
+                    className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-sky-500 transition font-mono font-medium"
+                  />
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
                   {/* 전면 높이 */}
                   <div>
                     <div className="mb-1 leading-tight min-h-[24px] flex flex-col justify-end">
-                      <label className="text-[10px] font-semibold text-slate-500 block">전면 (20%)</label>
+                      <label className="text-[10px] font-semibold text-slate-500 block">전면 ({frontPctText})</label>
                       {fHeight > 2400 && <span className="text-[8px] text-amber-600 font-bold block leading-none">4*10 규격</span>}
                     </div>
                     <input
@@ -324,7 +360,7 @@ export default function App() {
                   {/* 도어 높이 */}
                   <div>
                     <div className="mb-1 leading-tight min-h-[24px] flex flex-col justify-end">
-                      <label className="text-[10px] font-semibold text-slate-500 block">도어 (30%)</label>
+                      <label className="text-[10px] font-semibold text-slate-500 block">도어 ({doorPctText})</label>
                       {dHeight > 2400 && <span className="text-[8px] text-amber-600 font-bold block leading-none">4*10 규격</span>}
                     </div>
                     <input
@@ -342,7 +378,7 @@ export default function App() {
                   {/* 간벽 높이 */}
                   <div>
                     <div className="mb-1 leading-tight min-h-[24px] flex flex-col justify-end">
-                      <label className="text-[10px] font-semibold text-slate-500 block">간벽 (50%)</label>
+                      <label className="text-[10px] font-semibold text-slate-500 block">간벽 ({partitionPctText})</label>
                       {pHeight > 2400 && <span className="text-[8px] text-amber-600 font-bold block leading-none">4*10 규격</span>}
                     </div>
                     <input
@@ -362,7 +398,7 @@ export default function App() {
               {/* PB 종류 선택 */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-2">
-                  🪵 PB 종류 <span className="text-slate-400 font-normal text-[10px] ml-1">(로스율 10% 반영)</span>
+                  🪵 PB 종류 <span className="text-slate-400 font-normal text-[10px] ml-1">(로스율 8% 반영)</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -391,7 +427,7 @@ export default function App() {
               {/* HPM 종류 선택 */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-2">
-                  🎨 HPM 종류 <span className="text-slate-400 font-normal text-[10px] ml-1">(로스율 10% 반영)</span>
+                  🎨 HPM 종류 <span className="text-slate-400 font-normal text-[10px] ml-1">(로스율 8% 반영)</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -585,26 +621,72 @@ export default function App() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-slate-700">
-                          {/* 심재 PB */}
-                          <tr className="hover:bg-slate-50 transition">
-                            <td className="p-2 font-bold text-slate-900 whitespace-nowrap">심재 (PB)</td>
-                            <td className="p-2 whitespace-nowrap">
-                              {(() => {
-                                const resolvedFrontHeight = fHeight > 0 ? fHeight : 1800;
-                                const resolvedDoorHeight = dHeight > 0 ? dHeight : 1800;
-                                const resolvedPartitionHeight = pHeight > 0 ? pHeight : 1800;
-                                const maxPBHeight = Math.max(resolvedFrontHeight, resolvedDoorHeight, resolvedPartitionHeight);
-                                if (maxPBHeight <= 1800) {
-                                  return pbType === "일반 PB" ? "일반 PB (11,300원)" : "방수 PB (16,000원)";
-                                } else {
-                                  return pbType === "일반 PB" ? "일반 PB (13,600원)" : "방수 PB (22,000원)";
-                                }
-                              })()}
-                            </td>
-                            <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.pbSheets}장</td>
-                            <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.pbAmount.toLocaleString()}원</td>
-                            <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap truncate max-w-[100px]" title="로스율 10% 반영">로스 10%</td>
-                          </tr>
+                          {/* 심재 PB Breakdown */}
+                          {calculation.pbSheets_door_4x6 > 0 && (
+                            <tr className="hover:bg-slate-50 transition">
+                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">심재 (PB 4*6 도어)</td>
+                              <td className="p-2 whitespace-nowrap">
+                                {pbType === "일반 PB" ? "일반 PB (11,300원)" : "방수 PB (16,000원)"}
+                              </td>
+                              <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.pbSheets_door_4x6}장</td>
+                              <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.pbAmount_door_4x6.toLocaleString()}원</td>
+                              <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap truncate max-w-[100px]" title="로스율 8% 반영">로스 8%</td>
+                            </tr>
+                          )}
+                          {calculation.pbSheets_door_4x8 > 0 && (
+                            <tr className="hover:bg-slate-50 transition">
+                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">심재 (PB 4*8 도어)</td>
+                              <td className="p-2 whitespace-nowrap">
+                                {pbType === "일반 PB" ? "일반 PB (13,600원)" : "방수 PB (22,000원)"}
+                              </td>
+                              <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.pbSheets_door_4x8}장</td>
+                              <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.pbAmount_door_4x8.toLocaleString()}원</td>
+                              <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap truncate max-w-[100px]" title="로스율 8% 반영">로스 8%</td>
+                            </tr>
+                          )}
+                          {calculation.pbSheets_base_4x6 > 0 && (
+                            <tr className="hover:bg-slate-50 transition">
+                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">심재 (PB 4*6 기본판)</td>
+                              <td className="p-2 whitespace-nowrap">
+                                {pbType === "일반 PB" ? "일반 PB (11,300원)" : "방수 PB (16,000원)"}
+                              </td>
+                              <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.pbSheets_base_4x6}장</td>
+                              <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.pbAmount_base_4x6.toLocaleString()}원</td>
+                              <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap truncate max-w-[100px]" title="2400 이하 밑판">2400 이하 밑판</td>
+                            </tr>
+                          )}
+                          {calculation.pbSheets_base_4x8 > 0 && (
+                            <tr className="hover:bg-slate-50 transition">
+                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">심재 (PB 4*8 기본판)</td>
+                              <td className="p-2 whitespace-nowrap">
+                                {pbType === "일반 PB" ? "일반 PB (13,600원)" : "방수 PB (22,000원)"}
+                              </td>
+                              <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.pbSheets_base_4x8}장</td>
+                              <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.pbAmount_base_4x8.toLocaleString()}원</td>
+                              <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap truncate max-w-[100px]" title="2400 이하 밑판">2400 이하 밑판</td>
+                            </tr>
+                          )}
+                          {calculation.pbSheets_splice_4x8 > 0 && (
+                            <tr className="hover:bg-slate-50 transition">
+                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">심재 (PB 4*8 연장판)</td>
+                              <td className="p-2 whitespace-nowrap">
+                                {pbType === "일반 PB" ? "일반 PB (13,600원)" : "방수 PB (22,000원)"}
+                              </td>
+                              <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.pbSheets_splice_4x8}장</td>
+                              <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.pbAmount_splice_4x8.toLocaleString()}원</td>
+                              <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap truncate max-w-[100px]" title="2400 초과 조인용">2400 초과 조인용</td>
+                            </tr>
+                          )}
+                          {/* 심재 소계 (4*8) */}
+                          {calculation.pbSheets > 0 && (
+                            <tr className="bg-slate-100/60 font-semibold border-t-2 border-slate-200">
+                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">심재 소계 (4*8)</td>
+                              <td className="p-2 text-slate-400 whitespace-nowrap">-</td>
+                              <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.pbSheets}장</td>
+                              <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.pbAmount.toLocaleString()}원</td>
+                              <td className="p-2 text-indigo-600 font-bold text-[9px] whitespace-nowrap" title="PB 총 발주량">PB 총 발주량</td>
+                            </tr>
+                          )}
                           {/* 마감재 HPM */}
                           {calculation.hpmSheets_4x6 > 0 && (
                             <tr className="hover:bg-slate-50 transition">

@@ -8,6 +8,7 @@ export interface CubicleInputs {
   hpmType: "일반 HPM" | "메탈 HPM";
   baseboard: "없음" | "전면" | "전체";
   quantity: number;
+  doorCount?: number;
 }
 
 export interface DetailedRow {
@@ -23,6 +24,17 @@ export interface CalculationResult {
   pbPricePerSheet: number;
   pbSheets: number;
   pbAmount: number;
+
+  pbSheets_door_4x6: number;
+  pbAmount_door_4x6: number;
+  pbSheets_door_4x8: number;
+  pbAmount_door_4x8: number;
+  pbSheets_base_4x6: number;
+  pbAmount_base_4x6: number;
+  pbSheets_base_4x8: number;
+  pbAmount_base_4x8: number;
+  pbSheets_splice_4x8: number;
+  pbAmount_splice_4x8: number;
   
   hpmPricePerSheet: number;
   hpmSheets: number;
@@ -62,7 +74,7 @@ function calculatePanelSubArea(
 }
 
 export function calculateCubicle(inputs: CubicleInputs): CalculationResult {
-  const { frontHeight, doorHeight, partitionHeight, pbType, hpmType, baseboard, quantity } = inputs;
+  const { frontHeight, doorHeight, partitionHeight, pbType, hpmType, baseboard, quantity, doorCount } = inputs;
 
   const fHeight = frontHeight > 0 ? frontHeight : 1800;
   const dHeight = doorHeight > 0 ? doorHeight : 1800;
@@ -70,9 +82,19 @@ export function calculateCubicle(inputs: CubicleInputs): CalculationResult {
   const qty = quantity > 0 ? quantity : 0;
 
   // Area distributions
-  const frontArea = qty * 0.20;
-  const doorArea = qty * 0.30;
-  const partitionArea = qty * 0.50;
+  let frontArea = qty * 0.25;
+  let doorArea = qty * 0.25;
+  let partitionArea = qty * 0.50;
+
+  if (doorCount && doorCount > 0) {
+    // Exact Door Area = Door Count * 0.6m * (Door Height / 1000)
+    doorArea = doorCount * 0.6 * (dHeight / 1000);
+    const doorRatio = doorArea / qty;
+    const partitionRatio = 0.50;
+    const frontRatio = Math.max(0, 1.0 - partitionRatio - doorRatio);
+    frontArea = qty * frontRatio;
+    partitionArea = qty * partitionRatio;
+  }
 
   // Statically determine unit prices for each panel based on height
   const getPanelPrices = (height: number) => {
@@ -96,23 +118,38 @@ export function calculateCubicle(inputs: CubicleInputs): CalculationResult {
   const partitionPrices = getPanelPrices(pHeight);
 
   // 1. Door Panels (Width 600mm)
-  // - Total pieces needed = (Total Area * 0.30) assigned area converted back to pieces, or simply: Since width is 600mm, 1 raw board (1220mm width) yields exactly 2 pieces.
-  // - Formula: HPM Qty = Math.ceil((Total Doors Count * 2 sides) / 2)
-  const totalDoorsCount = doorArea / (0.6 * (dHeight / 1000));
-  const doorHpmSheets = Math.ceil((totalDoorsCount * 2) / 2);
-  const doorPbBase = Math.ceil(totalDoorsCount / 2);
-  const doorPbSheets = dHeight > 2400 
-    ? Math.ceil(doorPbBase * (dHeight / 2400)) 
-    : doorPbBase;
+  let doorHpmSheets = 0;
+  let doorPbBase = 0;
+  let doorPbSheets = 0;
+
+  if (doorCount && doorCount > 0) {
+    // Override area-based piece calculation when Exact Door Count is provided.
+    // - Door HPM Qty: Exactly equal to Door Count
+    // - Door PB Qty: Math.ceil(Door Count / 2)
+    doorHpmSheets = doorCount;
+    doorPbBase = Math.ceil(doorCount / 2);
+    doorPbSheets = dHeight > 2400 
+      ? Math.ceil(doorPbBase * (dHeight / 2400)) 
+      : doorPbBase;
+  } else {
+    // - Total pieces needed = (Total Area * 0.30) assigned area converted back to pieces, or simply: Since width is 600mm, 1 raw board (1220mm width) yields exactly 2 pieces.
+    // - Formula: HPM Qty = Math.ceil((Total Doors Count * 2 sides) / 2)
+    const totalDoorsCount = doorArea / (0.6 * (dHeight / 1000));
+    doorHpmSheets = Math.ceil((totalDoorsCount * 2) / 2);
+    doorPbBase = Math.ceil(totalDoorsCount / 2);
+    doorPbSheets = dHeight > 2400 
+      ? Math.ceil(doorPbBase * (dHeight / 2400)) 
+      : doorPbBase;
+  }
 
   // 2. Front Panels (Total Width 920mm per set)
   // - Do not round up per side. Calculate the total linear width needed for all sets combined (both sides included).
   // - Total Width = (Number of sets * 920mm * 2 sides)
-  // - Formula: HPM Qty = Math.ceil(Total Width / 1220)
+  // - Formula: HPM Qty = Math.ceil(Total Width / 1122.4)
   const numSets = frontArea / (0.92 * (fHeight / 1000));
   const totalWidthFront = numSets * 920 * 2;
-  const frontHpmSheets = Math.ceil(totalWidthFront / 1220);
-  const frontPbBase = Math.ceil((numSets * 920) / 1220);
+  const frontHpmSheets = Math.ceil(totalWidthFront / 1122.4);
+  const frontPbBase = Math.ceil((numSets * 920) / 1122.4);
   const frontPbSheets = fHeight > 2400 
     ? Math.ceil(frontPbBase * (fHeight / 2400)) 
     : frontPbBase;
@@ -136,6 +173,61 @@ export function calculateCubicle(inputs: CubicleInputs): CalculationResult {
   // Total sheets
   const pbSheets = doorPbSheets + frontPbSheets + partitionPbSheets;
   const hpmSheets = doorHpmSheets + frontHpmSheets + partitionHpmSheets;
+
+  // Group PB sheets and amounts by category and board size cleanly
+  let pbSheets_door_4x6 = 0;
+  let pbAmount_door_4x6 = 0;
+  let pbSheets_door_4x8 = 0;
+  let pbAmount_door_4x8 = 0;
+
+  let pbSheets_base_4x6 = 0;
+  let pbAmount_base_4x6 = 0;
+  let pbSheets_base_4x8 = 0;
+  let pbAmount_base_4x8 = 0;
+
+  let pbSheets_splice_4x8 = 0;
+  let pbAmount_splice_4x8 = 0;
+
+  // 1) Door PB allocation
+  if (dHeight <= 1800) {
+    pbSheets_door_4x6 = doorPbSheets;
+    pbAmount_door_4x6 = doorPbSheets * doorPrices.pbPriceVal;
+  } else {
+    pbSheets_door_4x8 = doorPbSheets;
+    pbAmount_door_4x8 = doorPbSheets * doorPrices.pbPriceVal;
+  }
+
+  // 2) Front PB allocation
+  if (fHeight <= 1800) {
+    pbSheets_base_4x6 += frontPbSheets;
+    pbAmount_base_4x6 += frontPbSheets * frontPrices.pbPriceVal;
+  } else if (fHeight <= 2400) {
+    pbSheets_base_4x8 += frontPbSheets;
+    pbAmount_base_4x8 += frontPbSheets * frontPrices.pbPriceVal;
+  } else {
+    pbSheets_base_4x8 += frontPbBase;
+    pbAmount_base_4x8 += frontPbBase * frontPrices.pbPriceVal;
+    
+    const splice = frontPbSheets - frontPbBase;
+    pbSheets_splice_4x8 += splice;
+    pbAmount_splice_4x8 += splice * frontPrices.pbPriceVal;
+  }
+
+  // 3) Partition PB allocation
+  if (pHeight <= 1800) {
+    pbSheets_base_4x6 += partitionPbSheets;
+    pbAmount_base_4x6 += partitionPbSheets * partitionPrices.pbPriceVal;
+  } else if (pHeight <= 2400) {
+    pbSheets_base_4x8 += partitionPbSheets;
+    pbAmount_base_4x8 += partitionPbSheets * partitionPrices.pbPriceVal;
+  } else {
+    pbSheets_base_4x8 += partitionPbBase;
+    pbAmount_base_4x8 += partitionPbBase * partitionPrices.pbPriceVal;
+    
+    const splice = partitionPbSheets - partitionPbBase;
+    pbSheets_splice_4x8 += splice;
+    pbAmount_splice_4x8 += splice * partitionPrices.pbPriceVal;
+  }
 
   // Group HPM sheets and amounts by board size (tiers)
   // Tier 4x6: Height <= 1800
@@ -234,6 +326,16 @@ export function calculateCubicle(inputs: CubicleInputs): CalculationResult {
     pbPricePerSheet,
     pbSheets,
     pbAmount,
+    pbSheets_door_4x6,
+    pbAmount_door_4x6,
+    pbSheets_door_4x8,
+    pbAmount_door_4x8,
+    pbSheets_base_4x6,
+    pbAmount_base_4x6,
+    pbSheets_base_4x8,
+    pbAmount_base_4x8,
+    pbSheets_splice_4x8,
+    pbAmount_splice_4x8,
     hpmPricePerSheet,
     hpmSheets,
     hpmAmount,
