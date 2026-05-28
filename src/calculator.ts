@@ -130,21 +130,21 @@ export function calculateCubicle(inputs: CubicleInputs): CalculationResult {
       if (hpmType === "특수 HPM") {
         hpmPriceVal = specialHpmPrice_4x6 ?? 0;
       } else {
-        hpmPriceVal = hpmType === "일반 HPM" ? 9500 : 25000;
+        hpmPriceVal = hpmType === "일반 HPM" ? 10500 : 25000;
       }
     } else if (height <= 2400) {
       pbPriceVal = pbType === "일반 PB" ? 13600 : 22000;
       if (hpmType === "특수 HPM") {
         hpmPriceVal = specialHpmPrice_4x8 ?? 0;
       } else {
-        hpmPriceVal = hpmType === "일반 HPM" ? 14000 : 25000;
+        hpmPriceVal = hpmType === "일반 HPM" ? 15000 : 25000;
       }
     } else {
       pbPriceVal = pbType === "일반 PB" ? 13600 : 22000;
       if (hpmType === "특수 HPM") {
         hpmPriceVal = specialHpmPrice_4x10 ?? 0;
       } else {
-        hpmPriceVal = hpmType === "일반 HPM" ? 19500 : 34000;
+        hpmPriceVal = hpmType === "일반 HPM" ? 21000 : 34000;
       }
     }
     return { pbPriceVal, hpmPriceVal };

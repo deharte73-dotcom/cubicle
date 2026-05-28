@@ -1039,7 +1039,7 @@ export default function App() {
                                 {hpmType === "특수 HPM" ? (
                                   <>특수 HPM<br />({(Number(specialHpmPrice_4x6) || 0).toLocaleString()}원)</>
                                 ) : hpmType === "일반 HPM" ? (
-                                  <>일반 HPM<br />(9,500원)</>
+                                  <>일반 HPM<br />(10,500원)</>
                                 ) : (
                                   <>메탈 HPM<br />(25,000원)</>
                                 )}
@@ -1058,7 +1058,7 @@ export default function App() {
                                 {hpmType === "특수 HPM" ? (
                                   <>특수 HPM<br />({(Number(specialHpmPrice_4x8) || 0).toLocaleString()}원)</>
                                 ) : hpmType === "일반 HPM" ? (
-                                  <>일반 HPM<br />(14,000원)</>
+                                  <>일반 HPM<br />(15,000원)</>
                                 ) : (
                                   <>메탈 HPM<br />(25,000원)</>
                                 )}
@@ -1077,7 +1077,7 @@ export default function App() {
                                 {hpmType === "특수 HPM" ? (
                                   <>특수 HPM<br />({(Number(specialHpmPrice_4x10) || 0).toLocaleString()}원)</>
                                 ) : hpmType === "일반 HPM" ? (
-                                  <>일반 HPM<br />(19,500원)</>
+                                  <>일반 HPM<br />(21,000원)</>
                                 ) : (
                                   <>메탈 HPM<br />(34,000원)</>
                                 )}
