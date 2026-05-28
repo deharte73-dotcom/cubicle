@@ -5,10 +5,13 @@ export interface CubicleInputs {
   doorHeight: number;
   partitionHeight: number;
   pbType: "일반 PB" | "방수 PB";
-  hpmType: "일반 HPM" | "메탈 HPM";
+  hpmType: "일반 HPM" | "메탈 HPM" | "특수 HPM";
   baseboard: "없음" | "전면" | "전체";
   quantity: number;
   doorCount?: number;
+  specialHpmPrice_4x6?: number;
+  specialHpmPrice_4x8?: number;
+  specialHpmPrice_4x10?: number;
 }
 
 export interface DetailedRow {
@@ -74,7 +77,19 @@ function calculatePanelSubArea(
 }
 
 export function calculateCubicle(inputs: CubicleInputs): CalculationResult {
-  const { frontHeight, doorHeight, partitionHeight, pbType, hpmType, baseboard, quantity, doorCount } = inputs;
+  const { 
+    frontHeight, 
+    doorHeight, 
+    partitionHeight, 
+    pbType, 
+    hpmType, 
+    baseboard, 
+    quantity, 
+    doorCount,
+    specialHpmPrice_4x6,
+    specialHpmPrice_4x8,
+    specialHpmPrice_4x10
+  } = inputs;
 
   const fHeight = frontHeight > 0 ? frontHeight : 1800;
   const dHeight = doorHeight > 0 ? doorHeight : 1800;
@@ -102,13 +117,25 @@ export function calculateCubicle(inputs: CubicleInputs): CalculationResult {
     let hpmPriceVal = 0;
     if (height <= 1800) {
       pbPriceVal = pbType === "일반 PB" ? 11300 : 16000;
-      hpmPriceVal = hpmType === "일반 HPM" ? 9500 : 25000;
+      if (hpmType === "특수 HPM") {
+        hpmPriceVal = specialHpmPrice_4x6 ?? 0;
+      } else {
+        hpmPriceVal = hpmType === "일반 HPM" ? 9500 : 25000;
+      }
     } else if (height <= 2400) {
       pbPriceVal = pbType === "일반 PB" ? 13600 : 22000;
-      hpmPriceVal = hpmType === "일반 HPM" ? 14000 : 25000;
+      if (hpmType === "특수 HPM") {
+        hpmPriceVal = specialHpmPrice_4x8 ?? 0;
+      } else {
+        hpmPriceVal = hpmType === "일반 HPM" ? 14000 : 25000;
+      }
     } else {
       pbPriceVal = pbType === "일반 PB" ? 13600 : 22000;
-      hpmPriceVal = hpmType === "일반 HPM" ? 19500 : 34000;
+      if (hpmType === "특수 HPM") {
+        hpmPriceVal = specialHpmPrice_4x10 ?? 0;
+      } else {
+        hpmPriceVal = hpmType === "일반 HPM" ? 19500 : 34000;
+      }
     }
     return { pbPriceVal, hpmPriceVal };
   };

@@ -37,7 +37,10 @@ export default function App() {
   const [doorHeight, setDoorHeight] = useState<number | "">("");
   const [partitionHeight, setPartitionHeight] = useState<number | "">("");
   const [pbType, setPbType] = useState<"일반 PB" | "방수 PB">("일반 PB");
-  const [hpmType, setHpmType] = useState<"일반 HPM" | "메탈 HPM">("일반 HPM");
+  const [hpmType, setHpmType] = useState<"일반 HPM" | "메탈 HPM" | "특수 HPM">("일반 HPM");
+  const [specialHpmPrice_4x6, setSpecialHpmPrice_4x6] = useState<number | "">("");
+  const [specialHpmPrice_4x8, setSpecialHpmPrice_4x8] = useState<number | "">("");
+  const [specialHpmPrice_4x10, setSpecialHpmPrice_4x10] = useState<number | "">("");
   const [baseboard, setBaseboard] = useState<"없음" | "전면" | "전체">("없음");
   const [quantity, setQuantity] = useState<number | "">("");
   const [doorCount, setDoorCount] = useState<number | "">("");
@@ -56,6 +59,12 @@ export default function App() {
 
   // 2. 누락값 검증용 임시 플래그 (0이나 비어있는 경우 검증을 위함)
   const isInputValid = fHeight > 0 && dHeight > 0 && pHeight > 0 && qty > 0;
+  
+  const isSpecialHpmPriceMissing = hpmType === "특수 HPM" && (
+    !specialHpmPrice_4x6 || Number(specialHpmPrice_4x6) <= 0 ||
+    !specialHpmPrice_4x8 || Number(specialHpmPrice_4x8) <= 0 ||
+    !specialHpmPrice_4x10 || Number(specialHpmPrice_4x10) <= 0
+  );
 
   // Dynamic Ratio calculation for UI Labels
   let doorRatioVal = 0.25;
@@ -74,7 +83,7 @@ export default function App() {
   const partitionPctText = "50%";
   
   // 3. 계산 실행 (HPM 타입을 안전하게 매칭)
-  const sanitizedHpmType = hpmType.includes("메탈") ? "메탈 HPM" : "일반 HPM";
+  const sanitizedHpmType = hpmType === "특수 HPM" ? "특수 HPM" : (hpmType.includes("메탈") ? "메탈 HPM" : "일반 HPM");
   const calculation: CalculationResult = calculateCubicle({
     frontHeight: fHeight,
     doorHeight: dHeight,
@@ -83,7 +92,10 @@ export default function App() {
     hpmType: sanitizedHpmType,
     baseboard,
     quantity: qty,
-    doorCount: dCount > 0 ? dCount : undefined
+    doorCount: dCount > 0 ? dCount : undefined,
+    specialHpmPrice_4x6: Number(specialHpmPrice_4x6) || 0,
+    specialHpmPrice_4x8: Number(specialHpmPrice_4x8) || 0,
+    specialHpmPrice_4x10: Number(specialHpmPrice_4x10) || 0
   });
 
   const scenarios: ProfitScenario[] = getProfitScenarios(calculation.totalCost, qty);
@@ -282,7 +294,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={handleSaveAsImage}
-                  disabled={isSavingImage || !isInputValid}
+                  disabled={isSavingImage || !isInputValid || isSpecialHpmPriceMissing}
                   className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-xl text-xs font-bold transition disabled:opacity-50 shadow-sm cursor-pointer"
                 >
                   {isSavingImage ? (
@@ -429,10 +441,10 @@ export default function App() {
                 <label className="block text-xs font-bold text-slate-700 mb-2">
                   🎨 HPM 종류 <span className="text-slate-400 font-normal text-[10px] ml-1">(로스율 8% 반영)</span>
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-1.5">
                   <button
                     onClick={() => setHpmType("일반 HPM")}
-                    className={`py-2 px-3 text-xs font-medium rounded-lg border transition ${
+                    className={`py-2 px-1 text-[11px] font-medium rounded-lg border transition ${
                       hpmType === "일반 HPM"
                         ? "bg-slate-900 text-white border-slate-900 font-bold"
                         : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
@@ -442,7 +454,7 @@ export default function App() {
                   </button>
                   <button
                     onClick={() => setHpmType("메탈 HPM")}
-                    className={`py-2 px-3 text-xs font-medium rounded-lg border transition ${
+                    className={`py-2 px-1 text-[11px] font-medium rounded-lg border transition ${
                       hpmType === "메탈 HPM"
                         ? "bg-slate-900 text-white border-slate-900 font-bold"
                         : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
@@ -450,7 +462,58 @@ export default function App() {
                   >
                     메탈 HPM
                   </button>
+                  <button
+                    onClick={() => setHpmType("특수 HPM")}
+                    className={`py-2 px-1 text-[11px] font-medium rounded-lg border transition ${
+                      hpmType === "특수 HPM"
+                        ? "bg-slate-900 text-white border-slate-900 font-bold"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    특수 HPM
+                  </button>
                 </div>
+
+                {/* 특수 HPM 단가 입력 (사이드바) */}
+                {hpmType === "특수 HPM" && (
+                  <div className="bg-amber-50/70 p-3 rounded-xl border border-amber-200 space-y-2 mt-2">
+                    <p className="text-[10px] font-bold text-amber-800 flex items-center gap-1">
+                      ✨ 특수 HPM 장당 단가 입력
+                    </p>
+                    <div className="space-y-1.5 text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-medium block">4*6자 규격 (1,800 이하)</span>
+                        <input
+                          type="number"
+                          placeholder="예: 12000"
+                          value={specialHpmPrice_4x6}
+                          onChange={(e) => setSpecialHpmPrice_4x6(e.target.value === "" ? "" : Number(e.target.value))}
+                          className="w-full mt-0.5 px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 transition font-mono placeholder:text-slate-300"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-medium block">4*8자 규격 (1,801 ~ 2,400)</span>
+                        <input
+                          type="number"
+                          placeholder="예: 18000"
+                          value={specialHpmPrice_4x8}
+                          onChange={(e) => setSpecialHpmPrice_4x8(e.target.value === "" ? "" : Number(e.target.value))}
+                          className="w-full mt-0.5 px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 transition font-mono placeholder:text-slate-300"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-medium block">4*10자 규격 (2,400 초과)</span>
+                        <input
+                          type="number"
+                          placeholder="예: 25000"
+                          value={specialHpmPrice_4x10}
+                          onChange={(e) => setSpecialHpmPrice_4x10(e.target.value === "" ? "" : Number(e.target.value))}
+                          className="w-full mt-0.5 px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 transition font-mono placeholder:text-slate-300"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* 걸레받이 선택 */}
@@ -528,6 +591,57 @@ export default function App() {
                     높이 정보와 총 물량(㎡) 정보가 누락되었습니다.<br />
                     값을 양수로 올바르게 완벽하게 채워주세요.
                   </p>
+                </div>
+              </div>
+            ) : isSpecialHpmPriceMissing ? (
+              <div className="bg-amber-50 border border-amber-200 text-amber-900 p-8 rounded-2xl shadow-sm space-y-4">
+                <div className="flex items-center gap-3">
+                  <HelpCircle className="w-8 h-8 text-amber-500 shrink-0" />
+                  <h3 className="font-extrabold text-base text-slate-900">단가 입력 요청</h3>
+                </div>
+                <p className="text-sm font-bold text-slate-800 leading-relaxed">
+                  특수 HPM이 선택되었습니다. 실행 산출을 위해 4*6자, 4*8자, 4*10자 규격의 HPM 장당 단가를 각각 입력해 주세요.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                  <div className="bg-white p-4 rounded-xl border border-amber-100 flex flex-col gap-1">
+                    <span className="text-xs font-bold text-slate-500 text-left">4*6자 단가 (높이 1,800 이하)</span>
+                    <div className="relative mt-1">
+                      <input
+                        type="number"
+                        placeholder="예: 12000"
+                        value={specialHpmPrice_4x6}
+                        onChange={(e) => setSpecialHpmPrice_4x6(e.target.value === "" ? "" : Number(e.target.value))}
+                        className="w-full pr-8 pl-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition text-slate-800 font-mono font-bold"
+                      />
+                      <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-bold">원</span>
+                    </div>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border border-amber-100 flex flex-col gap-1">
+                    <span className="text-xs font-bold text-slate-500 text-left">4*8자 단가 (1,801 ~ 2,400)</span>
+                    <div className="relative mt-1">
+                      <input
+                        type="number"
+                        placeholder="예: 18000"
+                        value={specialHpmPrice_4x8}
+                        onChange={(e) => setSpecialHpmPrice_4x8(e.target.value === "" ? "" : Number(e.target.value))}
+                        className="w-full pr-8 pl-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition text-slate-800 font-mono font-bold"
+                      />
+                      <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-bold">원</span>
+                    </div>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border border-amber-100 flex flex-col gap-1">
+                    <span className="text-xs font-bold text-slate-500 text-left">4*10자 단가 (2,400 초과)</span>
+                    <div className="relative mt-1">
+                      <input
+                        type="number"
+                        placeholder="예: 25000"
+                        value={specialHpmPrice_4x10}
+                        onChange={(e) => setSpecialHpmPrice_4x10(e.target.value === "" ? "" : Number(e.target.value))}
+                        className="w-full pr-8 pl-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition text-slate-800 font-mono font-bold"
+                      />
+                      <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-bold">원</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -692,33 +806,45 @@ export default function App() {
                             <tr className="hover:bg-slate-50 transition">
                               <td className="p-2 font-bold text-slate-900 whitespace-nowrap">마감재 (HPM 4*6)</td>
                               <td className="p-2 whitespace-nowrap">
-                                {hpmType === "일반 HPM" ? "일반 HPM (9,500원)" : "메탈 HPM (25,000원)"}
+                                {hpmType === "특수 HPM"
+                                  ? `특수 HPM (${(Number(specialHpmPrice_4x6) || 0).toLocaleString()}원)`
+                                  : (hpmType === "일반 HPM" ? "일반 HPM (9,500원)" : "메탈 HPM (25,000원)")}
                               </td>
                               <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.hpmSheets_4x6}장</td>
                               <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.hpmAmount_4x6.toLocaleString()}원</td>
-                              <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap truncate max-w-[100px]" title="양면 부착">양면 부착</td>
+                              <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap truncate max-w-[150px]" title={hpmType === "특수 HPM" ? `특수 HPM (사용자 입력 단가 적용: ${(Number(specialHpmPrice_4x6) || 0).toLocaleString()}원)` : "양면 부착"}>
+                                {hpmType === "특수 HPM" ? `특수 HPM (사용자 입력 단가 적용: ${(Number(specialHpmPrice_4x6) || 0).toLocaleString()}원)` : "양면 부착"}
+                              </td>
                             </tr>
                           )}
                           {calculation.hpmSheets_4x8 > 0 && (
                             <tr className="hover:bg-slate-50 transition">
                               <td className="p-2 font-bold text-slate-900 whitespace-nowrap">마감재 (HPM 4*8)</td>
                               <td className="p-2 whitespace-nowrap">
-                                {hpmType === "일반 HPM" ? "일반 HPM (14,000원)" : "메탈 HPM (25,000원)"}
+                                {hpmType === "특수 HPM"
+                                  ? `특수 HPM (${(Number(specialHpmPrice_4x8) || 0).toLocaleString()}원)`
+                                  : (hpmType === "일반 HPM" ? "일반 HPM (14,000원)" : "메탈 HPM (25,000원)")}
                               </td>
                               <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.hpmSheets_4x8}장</td>
                               <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.hpmAmount_4x8.toLocaleString()}원</td>
-                              <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap truncate max-w-[100px]" title="양면 부착">양면 부착</td>
+                              <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap truncate max-w-[150px]" title={hpmType === "특수 HPM" ? `특수 HPM (사용자 입력 단가 적용: ${(Number(specialHpmPrice_4x8) || 0).toLocaleString()}원)` : "양면 부착"}>
+                                {hpmType === "특수 HPM" ? `특수 HPM (사용자 입력 단가 적용: ${(Number(specialHpmPrice_4x8) || 0).toLocaleString()}원)` : "양면 부착"}
+                              </td>
                             </tr>
                           )}
                           {calculation.hpmSheets_4x10 > 0 && (
                             <tr className="hover:bg-slate-50 transition">
                               <td className="p-2 font-bold text-slate-900 whitespace-nowrap">마감재 (HPM 4*10)</td>
                               <td className="p-2 whitespace-nowrap">
-                                {hpmType === "일반 HPM" ? "일반 HPM (19,500원)" : "메탈 HPM (34,000원)"}
+                                {hpmType === "특수 HPM"
+                                  ? `특수 HPM (${(Number(specialHpmPrice_4x10) || 0).toLocaleString()}원)`
+                                  : (hpmType === "일반 HPM" ? "일반 HPM (19,500원)" : "메탈 HPM (34,000원)")}
                               </td>
                               <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.hpmSheets_4x10}장</td>
                               <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.hpmAmount_4x10.toLocaleString()}원</td>
-                              <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap truncate max-w-[100px]" title="양면 부착">양면 부착</td>
+                              <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap truncate max-w-[150px]" title={hpmType === "특수 HPM" ? `특수 HPM (사용자 입력 단가 적용: ${(Number(specialHpmPrice_4x10) || 0).toLocaleString()}원)` : "양면 부착"}>
+                                {hpmType === "특수 HPM" ? `특수 HPM (사용자 입력 단가 적용: ${(Number(specialHpmPrice_4x10) || 0).toLocaleString()}원)` : "양면 부착"}
+                              </td>
                             </tr>
                           )}
                           {/* 하드웨어 */}
