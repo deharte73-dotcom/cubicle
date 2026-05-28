@@ -12,6 +12,11 @@ export interface CubicleInputs {
   specialHpmPrice_4x6?: number;
   specialHpmPrice_4x8?: number;
   specialHpmPrice_4x10?: number;
+  laborType?: "헤베반영" | "일당반영";
+  customLaborAmount?: number;
+  overheadType?: "3%" | "7%" | "직접입력";
+  customOverheadAmount?: number;
+  hardwareType?: "저가형" | "기본형" | "고급형";
 }
 
 export interface DetailedRow {
@@ -88,7 +93,12 @@ export function calculateCubicle(inputs: CubicleInputs): CalculationResult {
     doorCount,
     specialHpmPrice_4x6,
     specialHpmPrice_4x8,
-    specialHpmPrice_4x10
+    specialHpmPrice_4x10,
+    laborType = "헤베반영",
+    customLaborAmount = 0,
+    overheadType = "3%",
+    customOverheadAmount = 0,
+    hardwareType = "기본형"
   } = inputs;
 
   const fHeight = frontHeight > 0 ? frontHeight : 1800;
@@ -323,7 +333,13 @@ export function calculateCubicle(inputs: CubicleInputs): CalculationResult {
   const hpmPricePerSheet = hpmSheets > 0 ? Math.round(hpmAmount / hpmSheets) : 0;
 
   // 3. 고정 공정비 및 걸레받이
-  const hardwareAmount = quantity * 8000;
+  let hardwareUnitPrice = 8000;
+  if (hardwareType === "저가형") {
+    hardwareUnitPrice = 7000;
+  } else if (hardwareType === "고급형") {
+    hardwareUnitPrice = 9000;
+  }
+  const hardwareAmount = quantity * hardwareUnitPrice;
   const bondingAmount = quantity * 10000;
 
   let laborUnitPrice = 11000;
@@ -336,14 +352,21 @@ export function calculateCubicle(inputs: CubicleInputs): CalculationResult {
     baseboardUnitPrice = 5000;
   }
   
-  const laborAmount = quantity * laborUnitPrice;
+  const laborAmount = laborType === "일당반영" ? customLaborAmount : (quantity * laborUnitPrice);
   const baseboardAmount = quantity * baseboardUnitPrice;
 
   // 실행 소계
   const subtotal = pbAmount + hpmAmount + hardwareAmount + bondingAmount + laborAmount + baseboardAmount;
   
-  // 공과잡비 (3% 올림)
-  const overhead = Math.ceil(subtotal * 0.03);
+  // 공과잡비
+  let overhead = 0;
+  if (overheadType === "직접입력") {
+    overhead = customOverheadAmount;
+  } else if (overheadType === "7%") {
+    overhead = Math.ceil(subtotal * 0.07);
+  } else {
+    overhead = Math.ceil(subtotal * 0.03);
+  }
   
   // 최종 실행 합계
   const totalCost = subtotal + overhead;

@@ -44,6 +44,11 @@ export default function App() {
   const [baseboard, setBaseboard] = useState<"없음" | "전면" | "전체">("없음");
   const [quantity, setQuantity] = useState<number | "">("");
   const [doorCount, setDoorCount] = useState<number | "">("");
+  const [laborType, setLaborType] = useState<"헤베반영" | "일당반영" >("헤베반영");
+  const [customLaborAmount, setCustomLaborAmount] = useState<number | "">("");
+  const [overheadType, setOverheadType] = useState<"3%" | "7%" | "직접입력">("3%");
+  const [customOverheadAmount, setCustomOverheadAmount] = useState<number | "">("");
+  const [hardwareType, setHardwareType] = useState<"저가형" | "기본형" | "고급형">("기본형");
 
   // 업체 및 현장명 정보 입력 상태
   const [companyName, setCompanyName] = useState<string>("");
@@ -65,6 +70,15 @@ export default function App() {
     !specialHpmPrice_4x8 || Number(specialHpmPrice_4x8) <= 0 ||
     !specialHpmPrice_4x10 || Number(specialHpmPrice_4x10) <= 0
   );
+
+  const isLaborAmountMissing = laborType === "일당반영" && (
+    !customLaborAmount || Number(customLaborAmount) <= 0
+  );
+
+  const isOverheadAmountMissing = overheadType === "직접입력" && (
+    !customOverheadAmount || Number(customOverheadAmount) <= 0
+  );
+
 
   // Dynamic Ratio calculation for UI Labels
   let doorRatioVal = 0.25;
@@ -95,7 +109,12 @@ export default function App() {
     doorCount: dCount > 0 ? dCount : undefined,
     specialHpmPrice_4x6: Number(specialHpmPrice_4x6) || 0,
     specialHpmPrice_4x8: Number(specialHpmPrice_4x8) || 0,
-    specialHpmPrice_4x10: Number(specialHpmPrice_4x10) || 0
+    specialHpmPrice_4x10: Number(specialHpmPrice_4x10) || 0,
+    laborType,
+    customLaborAmount: Number(customLaborAmount) || 0,
+    overheadType,
+    customOverheadAmount: Number(customOverheadAmount) || 0,
+    hardwareType
   });
 
   const scenarios: ProfitScenario[] = getProfitScenarios(calculation.totalCost, qty);
@@ -294,7 +313,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={handleSaveAsImage}
-                  disabled={isSavingImage || !isInputValid || isSpecialHpmPriceMissing}
+                  disabled={isSavingImage || !isInputValid || isSpecialHpmPriceMissing || isLaborAmountMissing || isOverheadAmountMissing}
                   className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-xl text-xs font-bold transition disabled:opacity-50 shadow-sm cursor-pointer"
                 >
                   {isSavingImage ? (
@@ -555,6 +574,147 @@ export default function App() {
                 </div>
               </div>
 
+              {/* 하드웨어 등급 선택 */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-2">
+                  🔩 하드웨어 등급
+                </label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  <button
+                    onClick={() => setHardwareType("저가형")}
+                    className={`py-2 px-1 text-[11px] font-medium rounded-lg border transition ${
+                      hardwareType === "저가형"
+                        ? "bg-slate-900 text-white border-slate-900 font-bold"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    저가형
+                  </button>
+                  <button
+                    onClick={() => setHardwareType("기본형")}
+                    className={`py-2 px-1 text-[11px] font-medium rounded-lg border transition ${
+                      hardwareType === "기본형"
+                        ? "bg-slate-900 text-white border-slate-900 font-bold"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    기본형 (기본)
+                  </button>
+                  <button
+                    onClick={() => setHardwareType("고급형")}
+                    className={`py-2 px-1 text-[11px] font-medium rounded-lg border transition ${
+                      hardwareType === "고급형"
+                        ? "bg-slate-900 text-white border-slate-900 font-bold"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    고급형
+                  </button>
+                </div>
+              </div>
+
+              {/* 시공비(인건비) 산정 방식 */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-2">
+                  👷 시공비(인건비) 산정 방식
+                </label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    onClick={() => setLaborType("헤베반영")}
+                    className={`py-2 px-1 text-[11px] font-medium rounded-lg border transition ${
+                      laborType === "헤베반영"
+                        ? "bg-slate-900 text-white border-slate-900 font-bold"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    헤베반영 (기본)
+                  </button>
+                  <button
+                    onClick={() => setLaborType("일당반영")}
+                    className={`py-2 px-1 text-[11px] font-medium rounded-lg border transition ${
+                      laborType === "일당반영"
+                        ? "bg-slate-900 text-white border-slate-900 font-bold"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    일당반영
+                  </button>
+                </div>
+
+                {/* 일당반영 금액 입력 (사이드바) */}
+                {laborType === "일당반영" && (
+                  <div className="bg-amber-50/70 p-3 rounded-xl border border-amber-200 space-y-2 mt-2">
+                    <span className="text-[10px] text-amber-800 font-bold block">💵 총 인건비(총 일당) 금액 입력</span>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        placeholder="예: 300000"
+                        value={customLaborAmount}
+                        onChange={(e) => setCustomLaborAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                        className="w-full mt-0.5 pr-8 pl-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 transition font-mono placeholder:text-slate-300 font-bold text-slate-800"
+                      />
+                      <span className="absolute right-3 top-2.5 text-[11px] text-slate-400 font-bold">원</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 공과잡비 산정 방식 */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-2">
+                  💼 공과잡비 산정 방식
+                </label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  <button
+                    onClick={() => setOverheadType("3%")}
+                    className={`py-2 px-1 text-[11px] font-medium rounded-lg border transition ${
+                      overheadType === "3%"
+                        ? "bg-slate-900 text-white border-slate-900 font-bold"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    3% (기본)
+                  </button>
+                  <button
+                    onClick={() => setOverheadType("7%")}
+                    className={`py-2 px-1 text-[11px] font-medium rounded-lg border transition ${
+                      overheadType === "7%"
+                        ? "bg-slate-900 text-white border-slate-900 font-bold"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    7%
+                  </button>
+                  <button
+                    onClick={() => setOverheadType("직접입력")}
+                    className={`py-2 px-1 text-[11px] font-medium rounded-lg border transition ${
+                      overheadType === "직접입력"
+                        ? "bg-slate-900 text-white border-slate-900 font-bold"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    직접입력
+                  </button>
+                </div>
+
+                {/* 직접입력 금액 입력 (사이드바) */}
+                {overheadType === "직접입력" && (
+                  <div className="bg-amber-50/70 p-3 rounded-xl border border-amber-200 space-y-2 mt-2">
+                    <span className="text-[10px] text-amber-800 font-bold block">💵 공과잡비 총 금액 입력</span>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        placeholder="예: 500000"
+                        value={customOverheadAmount}
+                        onChange={(e) => setCustomOverheadAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                        className="w-full mt-0.5 pr-8 pl-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 transition font-mono placeholder:text-slate-300 font-bold text-slate-800"
+                      />
+                      <span className="absolute right-3 top-2.5 text-[11px] text-slate-400 font-bold">원</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* 총 물량 (㎡) */}
               <div>
                 <div className="flex justify-between items-center mb-1">
@@ -638,6 +798,56 @@ export default function App() {
                         value={specialHpmPrice_4x10}
                         onChange={(e) => setSpecialHpmPrice_4x10(e.target.value === "" ? "" : Number(e.target.value))}
                         className="w-full pr-8 pl-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition text-slate-800 font-mono font-bold"
+                      />
+                      <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-bold">원</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : isLaborAmountMissing ? (
+              <div className="bg-amber-50 border border-amber-200 text-amber-900 p-8 rounded-2xl shadow-sm space-y-4">
+                <div className="flex items-center gap-3">
+                  <HelpCircle className="w-8 h-8 text-amber-500 shrink-0" />
+                  <h3 className="font-extrabold text-base text-slate-900">시공비(인건비) 입력 요청</h3>
+                </div>
+                <p className="text-sm font-bold text-slate-800 leading-relaxed font-sans">
+                  인건비 일당반영이 선택되었습니다. 실행 산출에 적용할 '총 인건비(총 일당) 금액'을 입력해 주세요.
+                </p>
+                <div className="pt-2 max-w-md">
+                  <div className="bg-white p-4 rounded-xl border border-amber-100 flex flex-col gap-1 shadow-sm">
+                    <span className="text-xs font-bold text-slate-500 text-left">총 인건비 (총 일당)</span>
+                    <div className="relative mt-1">
+                      <input
+                        type="number"
+                        placeholder="예: 300000"
+                        value={customLaborAmount}
+                        onChange={(e) => setCustomLaborAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                        className="w-full pr-8 pl-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition text-slate-850 font-mono font-bold"
+                      />
+                      <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-bold">원</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : isOverheadAmountMissing ? (
+              <div className="bg-amber-50 border border-amber-200 text-amber-900 p-8 rounded-2xl shadow-sm space-y-4">
+                <div className="flex items-center gap-3">
+                  <HelpCircle className="w-8 h-8 text-amber-500 shrink-0" />
+                  <h3 className="font-extrabold text-base text-slate-900">공과잡비 입력 요청</h3>
+                </div>
+                <p className="text-sm font-bold text-slate-800 leading-relaxed font-sans">
+                  공과잡비 직접입력이 선택되었습니다. 실행 산출에 적용할 '공과잡비 총 금액'을 입력해 주세요.
+                </p>
+                <div className="pt-2 max-w-md">
+                  <div className="bg-white p-4 rounded-xl border border-amber-100 flex flex-col gap-1 shadow-sm">
+                    <span className="text-xs font-bold text-slate-500 text-left">공과잡비 총 금액</span>
+                    <div className="relative mt-1">
+                      <input
+                        type="number"
+                        placeholder="예: 500000"
+                        value={customOverheadAmount}
+                        onChange={(e) => setCustomOverheadAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                        className="w-full pr-8 pl-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition text-slate-850 font-mono font-bold"
                       />
                       <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-bold">원</span>
                     </div>
@@ -728,19 +938,23 @@ export default function App() {
                         <thead>
                           <tr className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100 text-[10px]">
                             <th className="p-2 py-1.5 whitespace-nowrap">구분</th>
-                            <th className="p-2 py-1.5">선택 옵션</th>
-                            <th className="p-2 py-1.5">소요량</th>
-                            <th className="p-2 py-1.5 text-right">금액 (원)</th>
-                            <th className="p-2 py-1.5">비고</th>
+                            <th className="p-2 py-1.5 whitespace-nowrap">옵션(단가)</th>
+                            <th className="p-2 py-1.5 whitespace-nowrap">소요량</th>
+                            <th className="p-2 py-1.5 text-right whitespace-nowrap">금액 (원)</th>
+                            <th className="p-2 py-1.5 whitespace-nowrap">비고</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-slate-700">
                           {/* 심재 PB Breakdown */}
                           {calculation.pbSheets_door_4x6 > 0 && (
                             <tr className="hover:bg-slate-50 transition">
-                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">심재 (PB 4*6 도어)</td>
+                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">PB 4*6 도어</td>
                               <td className="p-2 whitespace-nowrap">
-                                {pbType === "일반 PB" ? "일반 PB (11,300원)" : "방수 PB (16,000원)"}
+                                {pbType === "일반 PB" ? (
+                                  <>일반 PB<br />(11,300원)</>
+                                ) : (
+                                  <>방수 PB<br />(16,000원)</>
+                                )}
                               </td>
                               <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.pbSheets_door_4x6}장</td>
                               <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.pbAmount_door_4x6.toLocaleString()}원</td>
@@ -749,9 +963,13 @@ export default function App() {
                           )}
                           {calculation.pbSheets_door_4x8 > 0 && (
                             <tr className="hover:bg-slate-50 transition">
-                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">심재 (PB 4*8 도어)</td>
+                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">PB 4*8 도어</td>
                               <td className="p-2 whitespace-nowrap">
-                                {pbType === "일반 PB" ? "일반 PB (13,600원)" : "방수 PB (22,000원)"}
+                                {pbType === "일반 PB" ? (
+                                  <>일반 PB<br />(13,600원)</>
+                                ) : (
+                                  <>방수 PB<br />(22,000원)</>
+                                )}
                               </td>
                               <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.pbSheets_door_4x8}장</td>
                               <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.pbAmount_door_4x8.toLocaleString()}원</td>
@@ -760,9 +978,13 @@ export default function App() {
                           )}
                           {calculation.pbSheets_base_4x6 > 0 && (
                             <tr className="hover:bg-slate-50 transition">
-                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">심재 (PB 4*6 기본판)</td>
+                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">PB 4*6 기본판</td>
                               <td className="p-2 whitespace-nowrap">
-                                {pbType === "일반 PB" ? "일반 PB (11,300원)" : "방수 PB (16,000원)"}
+                                {pbType === "일반 PB" ? (
+                                  <>일반 PB<br />(11,300원)</>
+                                ) : (
+                                  <>방수 PB<br />(16,000원)</>
+                                )}
                               </td>
                               <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.pbSheets_base_4x6}장</td>
                               <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.pbAmount_base_4x6.toLocaleString()}원</td>
@@ -771,9 +993,13 @@ export default function App() {
                           )}
                           {calculation.pbSheets_base_4x8 > 0 && (
                             <tr className="hover:bg-slate-50 transition">
-                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">심재 (PB 4*8 기본판)</td>
+                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">PB 4*8 기본판</td>
                               <td className="p-2 whitespace-nowrap">
-                                {pbType === "일반 PB" ? "일반 PB (13,600원)" : "방수 PB (22,000원)"}
+                                {pbType === "일반 PB" ? (
+                                  <>일반 PB<br />(13,600원)</>
+                                ) : (
+                                  <>방수 PB<br />(22,000원)</>
+                                )}
                               </td>
                               <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.pbSheets_base_4x8}장</td>
                               <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.pbAmount_base_4x8.toLocaleString()}원</td>
@@ -782,9 +1008,13 @@ export default function App() {
                           )}
                           {calculation.pbSheets_splice_4x8 > 0 && (
                             <tr className="hover:bg-slate-50 transition">
-                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">심재 (PB 4*8 연장판)</td>
+                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">PB 4*8 연장판</td>
                               <td className="p-2 whitespace-nowrap">
-                                {pbType === "일반 PB" ? "일반 PB (13,600원)" : "방수 PB (22,000원)"}
+                                {pbType === "일반 PB" ? (
+                                  <>일반 PB<br />(13,600원)</>
+                                ) : (
+                                  <>방수 PB<br />(22,000원)</>
+                                )}
                               </td>
                               <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.pbSheets_splice_4x8}장</td>
                               <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.pbAmount_splice_4x8.toLocaleString()}원</td>
@@ -804,56 +1034,76 @@ export default function App() {
                           {/* 마감재 HPM */}
                           {calculation.hpmSheets_4x6 > 0 && (
                             <tr className="hover:bg-slate-50 transition">
-                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">마감재 (HPM 4*6)</td>
+                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">HPM 4*6</td>
                               <td className="p-2 whitespace-nowrap">
-                                {hpmType === "특수 HPM"
-                                  ? `특수 HPM (${(Number(specialHpmPrice_4x6) || 0).toLocaleString()}원)`
-                                  : (hpmType === "일반 HPM" ? "일반 HPM (9,500원)" : "메탈 HPM (25,000원)")}
+                                {hpmType === "특수 HPM" ? (
+                                  <>특수 HPM<br />({(Number(specialHpmPrice_4x6) || 0).toLocaleString()}원)</>
+                                ) : hpmType === "일반 HPM" ? (
+                                  <>일반 HPM<br />(9,500원)</>
+                                ) : (
+                                  <>메탈 HPM<br />(25,000원)</>
+                                )}
                               </td>
                               <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.hpmSheets_4x6}장</td>
                               <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.hpmAmount_4x6.toLocaleString()}원</td>
                               <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap truncate max-w-[150px]" title={hpmType === "특수 HPM" ? `특수 HPM (사용자 입력 단가 적용: ${(Number(specialHpmPrice_4x6) || 0).toLocaleString()}원)` : "양면 부착"}>
-                                {hpmType === "특수 HPM" ? `특수 HPM (사용자 입력 단가 적용: ${(Number(specialHpmPrice_4x6) || 0).toLocaleString()}원)` : "양면 부착"}
+                                {hpmType === "특수 HPM" ? `특수 HPM (단가 적용: ${(Number(specialHpmPrice_4x6) || 0).toLocaleString()}원)` : "양면 부착"}
                               </td>
                             </tr>
                           )}
                           {calculation.hpmSheets_4x8 > 0 && (
                             <tr className="hover:bg-slate-50 transition">
-                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">마감재 (HPM 4*8)</td>
+                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">HPM 4*8</td>
                               <td className="p-2 whitespace-nowrap">
-                                {hpmType === "특수 HPM"
-                                  ? `특수 HPM (${(Number(specialHpmPrice_4x8) || 0).toLocaleString()}원)`
-                                  : (hpmType === "일반 HPM" ? "일반 HPM (14,000원)" : "메탈 HPM (25,000원)")}
+                                {hpmType === "특수 HPM" ? (
+                                  <>특수 HPM<br />({(Number(specialHpmPrice_4x8) || 0).toLocaleString()}원)</>
+                                ) : hpmType === "일반 HPM" ? (
+                                  <>일반 HPM<br />(14,000원)</>
+                                ) : (
+                                  <>메탈 HPM<br />(25,000원)</>
+                                )}
                               </td>
                               <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.hpmSheets_4x8}장</td>
                               <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.hpmAmount_4x8.toLocaleString()}원</td>
                               <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap truncate max-w-[150px]" title={hpmType === "특수 HPM" ? `특수 HPM (사용자 입력 단가 적용: ${(Number(specialHpmPrice_4x8) || 0).toLocaleString()}원)` : "양면 부착"}>
-                                {hpmType === "특수 HPM" ? `특수 HPM (사용자 입력 단가 적용: ${(Number(specialHpmPrice_4x8) || 0).toLocaleString()}원)` : "양면 부착"}
+                                {hpmType === "특수 HPM" ? `특수 HPM (단가 적용: ${(Number(specialHpmPrice_4x8) || 0).toLocaleString()}원)` : "양면 부착"}
                               </td>
                             </tr>
                           )}
                           {calculation.hpmSheets_4x10 > 0 && (
                             <tr className="hover:bg-slate-50 transition">
-                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">마감재 (HPM 4*10)</td>
+                              <td className="p-2 font-bold text-slate-900 whitespace-nowrap">HPM 4*10</td>
                               <td className="p-2 whitespace-nowrap">
-                                {hpmType === "특수 HPM"
-                                  ? `특수 HPM (${(Number(specialHpmPrice_4x10) || 0).toLocaleString()}원)`
-                                  : (hpmType === "일반 HPM" ? "일반 HPM (19,500원)" : "메탈 HPM (34,000원)")}
+                                {hpmType === "특수 HPM" ? (
+                                  <>특수 HPM<br />({(Number(specialHpmPrice_4x10) || 0).toLocaleString()}원)</>
+                                ) : hpmType === "일반 HPM" ? (
+                                  <>일반 HPM<br />(19,500원)</>
+                                ) : (
+                                  <>메탈 HPM<br />(34,000원)</>
+                                )}
                               </td>
                               <td className="p-2 font-mono font-bold text-indigo-600 whitespace-nowrap">{calculation.hpmSheets_4x10}장</td>
                               <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.hpmAmount_4x10.toLocaleString()}원</td>
                               <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap truncate max-w-[150px]" title={hpmType === "특수 HPM" ? `특수 HPM (사용자 입력 단가 적용: ${(Number(specialHpmPrice_4x10) || 0).toLocaleString()}원)` : "양면 부착"}>
-                                {hpmType === "특수 HPM" ? `특수 HPM (사용자 입력 단가 적용: ${(Number(specialHpmPrice_4x10) || 0).toLocaleString()}원)` : "양면 부착"}
+                                {hpmType === "특수 HPM" ? `특수 HPM (단가 적용: ${(Number(specialHpmPrice_4x10) || 0).toLocaleString()}원)` : "양면 부착"}
                               </td>
                             </tr>
                           )}
                           {/* 하드웨어 */}
                           <tr className="hover:bg-slate-50 transition">
                             <td className="p-2 font-bold text-slate-900 whitespace-nowrap">하드웨어</td>
-                            <td className="p-2 whitespace-nowrap text-slate-500">8,000원/㎡</td>
+                            <td className="p-2 whitespace-nowrap text-slate-500 text-[11px]">
+                              {hardwareType === "저가형" ? (
+                                <>저가형<br />(7,000원)</>
+                              ) : hardwareType === "기본형" ? (
+                                <>기본형<br />(8,000원)</>
+                              ) : (
+                                <>고급형<br />(9,000원)</>
+                              )}
+                            </td>
                             <td className="p-2 font-mono text-slate-600 whitespace-nowrap">{quantity}㎡</td>
                             <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.hardwareAmount.toLocaleString()}원</td>
-                            <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap">고정단가</td>
+                            <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap">등급별 단가 적용</td>
                           </tr>
                           {/* 가공비 */}
                           <tr className="hover:bg-slate-50 transition">
@@ -866,12 +1116,16 @@ export default function App() {
                           {/* 시공비 */}
                           <tr className="hover:bg-slate-50 transition">
                             <td className="p-2 font-bold text-slate-900 whitespace-nowrap">시공비</td>
-                            <td className="p-2 whitespace-nowrap text-slate-[11px] truncate max-w-[100px]">
-                              {(baseboard === '전체' ? 14000 : baseboard === '전면' ? 13000 : 11000).toLocaleString()}원/㎡
+                            <td className="p-2 whitespace-nowrap text-slate-[11px] truncate max-w-[100px]" title={laborType === "일당반영" ? "일당반영 (정액)" : "헤베당 시공 단가"}>
+                              {laborType === "일당반영" ? "-" : `${(baseboard === '전체' ? 14000 : baseboard === '전면' ? 13000 : 11000).toLocaleString()}원/㎡`}
                             </td>
-                            <td className="p-2 font-mono text-slate-600 whitespace-nowrap">{quantity}㎡</td>
+                            <td className="p-2 font-mono text-slate-600 whitespace-nowrap">
+                              {laborType === "일당반영" ? "-" : `${quantity}㎡`}
+                            </td>
                             <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.laborAmount.toLocaleString()}원</td>
-                            <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap">걸레받이</td>
+                            <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap truncate max-w-[160px]" title={laborType === "일당반영" ? "일당(정액) 반영 (사용자 지정 금액)" : "헤베당 단가 적용"}>
+                              {laborType === "일당반영" ? "일당(정액) 반영 (사용자 지정 금액)" : "헤베당 단가 적용"}
+                            </td>
                           </tr>
                           {/* 전면 걸레받이 */}
                           <tr className="hover:bg-slate-50 transition">
@@ -896,10 +1150,14 @@ export default function App() {
                           {/* 공과잡비 */}
                           <tr className="hover:bg-slate-50 transition bg-slate-50/50">
                             <td className="p-2 font-bold text-slate-950 whitespace-nowrap">공과잡비</td>
-                            <td className="p-2 text-slate-500 whitespace-nowrap">3% (올림)</td>
+                            <td className="p-2 whitespace-nowrap text-slate-500 text-[11px]" title={overheadType === "직접입력" ? "직접 입력 반영 (사용자 지정 금액)" : `${overheadType} (올림)`}>
+                              {overheadType === "직접입력" ? "직접입력" : `${overheadType} (올림)`}
+                            </td>
                             <td className="p-2 font-mono whitespace-nowrap">-</td>
                             <td className="p-2 text-right font-mono font-bold text-slate-900 whitespace-nowrap">{calculation.overhead.toLocaleString()}원</td>
-                            <td className="p-2 text-slate-400 text-[9px] whitespace-nowrap">-</td>
+                            <td className="p-2 text-slate-400 text-[10px] whitespace-nowrap truncate max-w-[180px]" title={overheadType === "직접입력" ? "직접 입력 반영 (사용자 지정 금액)" : `${overheadType} (올림)`}>
+                              {overheadType === "직접입력" ? "직접 입력 반영 (사용자 지정 금액)" : `${overheadType} (올림)`}
+                            </td>
                           </tr>
                           {/* 최종 합계 */}
                           <tr className="bg-sky-50 text-sky-950 font-bold border-t border-sky-100">
@@ -931,7 +1189,7 @@ export default function App() {
                           <tr className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100 text-[10px]">
                             <th className="p-2 py-1.5 text-center whitespace-nowrap">영업이익률</th>
                             <th className="p-2 py-1.5 text-left whitespace-nowrap">㎡당 단가</th>
-                            <th className="p-2 py-1.5 text-left whitespace-nowrap">최종 총견적</th>
+                            <th className="p-2 py-1.5 text-left whitespace-nowrap">총 견적</th>
                             <th className="p-2 py-1.5 text-right whitespace-nowrap">예상 순이익</th>
                           </tr>
                         </thead>
@@ -963,6 +1221,19 @@ export default function App() {
                   </div>
 
                 </div>
+
+                {/* 💡 소량 물량 일당반영 권장 안내 */}
+                {qty < 15 && laborType !== "일당반영" && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5 text-amber-900 leading-relaxed flex items-start gap-4 shadow-sm">
+                    <span className="text-xl shrink-0 mt-0.5">💡</span>
+                    <div className="text-left">
+                      <p className="font-extrabold text-slate-900 text-sm">안내: 소단위 물량 인건비 권장사항</p>
+                      <p className="text-xs text-slate-700 mt-1 font-medium leading-relaxed">
+                        물량이 소량(15헤베 미만)인 경우, 헤베당 단가를 적용하면 실제 작업자의 최소 출장비(일당)에 못 미칠 수 있습니다. 현실적인 실행 산출을 위해 인건비를 <span className="font-extrabold text-slate-900 underline underline-offset-2">'일당반영'</span>으로 계산하시는 것을 권장합니다.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
