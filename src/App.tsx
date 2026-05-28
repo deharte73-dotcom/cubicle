@@ -16,7 +16,8 @@ import {
   Download,
   Building2,
   MapPin,
-  Image as ImageIcon
+  Image as ImageIcon,
+  X
 } from "lucide-react";
 import { 
   calculateCubicle, 
@@ -55,6 +56,7 @@ export default function App() {
   const [siteName, setSiteName] = useState<string>("");
   const [isSavingImage, setIsSavingImage] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<FeedbackMessage | null>(null);
+  const [capturedImageUrl, setCapturedImageUrl] = useState<string | null>(null);
 
   const fHeight = Number(frontHeight) || 0;
   const dHeight = Number(doorHeight) || 0;
@@ -125,18 +127,17 @@ export default function App() {
     if (!element) return;
 
     setIsSavingImage(true);
-    setFeedback({ type: 'info', text: "견적서 이미지를 생성하고 있습니다... 수 초 내 다운로드가 시작됩니다." });
+    setFeedback({ type: 'info', text: "견적서 이미지를 생성하고 있습니다... 수 초 내 다운로드 또는 미리보기가 시작되니 대기해 주세요." });
 
     try {
-      // Create options for precise capture preserving desktop and mobile rendering nicely
-      const canvas = await html2canvas(element, {
-        scale: 2, // 2x high definition resolution
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-        allowTaint: true,
-        onclone: (clonedDoc) => {
-          // html2canvas passes standard clonedDoc. Create a helper canvas to normalize oklch
+      const dateStr = new Date().toISOString().split('T')[0];
+      const cleanedCompany = companyName.trim() || "실행계산";
+      const cleanedSite = siteName.trim() || "";
+      const filename = `${cleanedCompany}${cleanedSite ? '_' + cleanedSite : ''}_큐비클_실행견적서_${dateStr}.png`;
+
+      // Helper canvas function to normalize colors (oklch etc.) in cloned document
+      const oncloneCallback = (clonedDoc: Document) => {
+        try {
           const helperCanvas = clonedDoc.createElement("canvas");
           helperCanvas.width = 1;
           helperCanvas.height = 1;
@@ -169,10 +170,10 @@ export default function App() {
           const elements = clonedDoc.getElementsByTagName("*");
           for (let i = 0; i < elements.length; i++) {
             const el = elements[i] as HTMLElement;
-            if (!el.style) continue;
+            if (!el || !el.style) continue;
 
             try {
-              const win = el.ownerDocument?.defaultView || window;
+              const win = clonedDoc.defaultView || window;
               const computed = win.getComputedStyle(el);
               const propertiesToNormalize = [
                 "backgroundColor",
@@ -187,39 +188,97 @@ export default function App() {
               ];
 
               propertiesToNormalize.forEach((prop) => {
-                const val = computed[prop as any];
-                if (val && val.includes("oklch")) {
-                  const resolved = resolveColor(val);
-                  if (resolved && resolved !== val) {
-                    el.style[prop as any] = resolved;
+                try {
+                  const val = computed[prop as any];
+                  if (val && val.includes("oklch")) {
+                    const resolved = resolveColor(val);
+                    if (resolved && resolved !== val) {
+                      el.style[prop as any] = resolved;
+                    }
                   }
+                } catch (e) {
+                  // Ignore property error
                 }
               });
             } catch (err) {
-              // Ignore computed styles error for unsupported elements
+              // Ignore computed styles error
             }
           }
+        } catch (globalErr) {
+          console.error("Style normalization during clone failed:", globalErr);
         }
-      });
+      };
 
-      const image = canvas.toDataURL("image/png");
-      const link = document.createElement("a");
+      // Create options for precise capture (using scale: 2.5 for high resolution)
+      let image = "";
+      try {
+        const canvas = await html2canvas(element, {
+          scale: 2.5,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: "#ffffff",
+          logging: false,
+          onclone: oncloneCallback
+        });
+        image = canvas.toDataURL("image/png");
+      } catch (firstErr) {
+        console.warn("First html2canvas attempt with allowTaint: true failed. Retrying with allowTaint: false...", firstErr);
+        // Fallback retry with allowTaint: false to prevent canvas taint issues from breaking everything
+        const canvas = await html2canvas(element, {
+          scale: 2.5,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: "#ffffff",
+          logging: false,
+          onclone: oncloneCallback
+        });
+        image = canvas.toDataURL("image/png");
+      }
 
-      const dateStr = new Date().toISOString().split('T')[0];
-      const cleanedCompany = companyName.trim() || "실행계산";
-      const cleanedSite = siteName.trim() || "";
-      const filename = `${cleanedCompany}${cleanedSite ? '_' + cleanedSite : ''}_큐비클_실행견적서_${dateStr}.png`;
+      // Check if image data is valid
+      if (!image || image === "data:,") {
+        throw new Error("Invalid canvas rendering data URL generated.");
+      }
 
-      link.href = image;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Detection for mobile / in-app browsers
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-      setFeedback({ type: 'success', text: "성공적으로 견적서 이미지가 저장되었습니다!" });
+      if (isMobile) {
+        // In mobile/smartphone environment, display the image in an elegant modal overlay for long-press download
+        setCapturedImageUrl(image);
+        setFeedback({ 
+          type: 'success', 
+          text: "견적서 이미지가 성공적으로 생성되었습니다! 화면 아래에 나타난 미리보기 이미지를 길게 눌러 갤러리에 저장해 주세요." 
+        });
+      } else {
+        // Desktop environment: normal direct download
+        try {
+          const link = document.createElement("a");
+          link.href = image;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          // Also show preview modal for redundancy/convenience
+          setCapturedImageUrl(image);
+          setFeedback({ type: 'success', text: "견적서 이미지 파일 다운로드가 시작되었습니다!" });
+        } catch (downloadErr) {
+          // If direct download fails on desktop, show image modal fallback
+          console.warn("Direct download failed, showing preview modal fallback", downloadErr);
+          setCapturedImageUrl(image);
+          setFeedback({ 
+            type: 'info', 
+            text: "현재 브라우저 보안 정책으로 인해 직접 다운로드가 가로막혔습니다. 아래 견적서 이미지를 우클릭하여 '다른 이름으로 저장'해 주세요." 
+          });
+        }
+      }
     } catch (err) {
-      console.error(err);
-      setFeedback({ type: 'error', text: "이미지 저장에 실패했습니다. 컴퓨터/스마트폰 브라우저 설정을 확인해주세요." });
+      console.error("Failed to capture estimate image:", err);
+      setFeedback({ 
+        type: 'error', 
+        text: "견적서 이미지 저장 도중 오류가 발생했습니다. 전용 캡처 기능이나 수동 캡처(스크린샷)를 사용하시거나 브라우저 권한을 확인해주세요." 
+      });
     } finally {
       setIsSavingImage(false);
     }
@@ -1240,6 +1299,76 @@ export default function App() {
           </div>
         </div>
       </main>
+
+      {/* 모바일 호환 및 다운로드 다중 지원용 이미지 미리보기/다운로드 모달 */}
+      {capturedImageUrl && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/85 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden transform scale-100 transition-all duration-300">
+            
+            {/* 모달 헤더 */}
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-2">
+                <div className="p-1 px-1.5 bg-sky-500 rounded text-white text-[10px] font-bold">PREVIEW</div>
+                <h3 className="text-sm font-extrabold text-slate-900">견적서 이미지 저장 / 공유</h3>
+              </div>
+              <button
+                onClick={() => setCapturedImageUrl(null)}
+                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+                aria-label="닫기"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 모달 본문 */}
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 bg-slate-100">
+              <div className="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-sm max-w-full overflow-hidden flex justify-center">
+                <img 
+                  src={capturedImageUrl} 
+                  alt="Cubicle Estimate" 
+                  className="rounded-lg max-h-[50vh] object-contain shadow-sm border border-slate-100 cursor-pointer pointer-events-auto"
+                  referrerPolicy="no-referrer"
+                  title="길게 누르거나 우클릭하여 직접 저장 가능"
+                />
+              </div>
+
+              {/* 사용자 가이드 */}
+              <div className="bg-amber-50 border border-amber-200 p-3 sm:p-4 rounded-xl text-left space-y-1.5">
+                <span className="text-[11px] font-extrabold text-amber-800 flex items-center gap-1">
+                  💡 스마트 기기(모바일/카카오톡 등) 저장 요령
+                </span>
+                <p className="text-[11px] font-semibold text-slate-700 leading-relaxed font-sans">
+                  모바일 메신저(카카오톡, 라인 등) 인앱 브라우저나 일부 스마트폰 환경에서는 보안 정책에 따라 파일 자동 저장이 제한될 수 있습니다. 
+                  <br />
+                  위의 견적서 이미지를 <strong>[가볍게 터치하거나 길게 터치(롱프레스)]</strong> 한 후 <strong>[기기에 이미지 저장]</strong>을 눌러 저장하시면 앨범에 완벽하게 보관할 수 있습니다.
+                </p>
+              </div>
+            </div>
+
+            {/* 모달 푸터 */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-2">
+              <button
+                onClick={() => setCapturedImageUrl(null)}
+                className="flex-1 py-2.5 px-4 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+              >
+                창 닫기
+              </button>
+              <a
+                href={capturedImageUrl}
+                download={`${companyName.trim() || "실행계산"}${siteName.trim() ? '_' + siteName.trim() : ''}_큐비클_실행견적서_${new Date().toISOString().split('T')[0]}.png`}
+                onClick={() => {
+                  setFeedback({ type: 'success', text: "이미지 다운로드를 시도합니다." });
+                }}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                이미지 파일 다운로드
+              </a>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }
